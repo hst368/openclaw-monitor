@@ -197,10 +197,21 @@ class OpenClawCollector:
                         # 简单的状态判断
                         is_active = (now - mtime).total_seconds() < 3600  # 1小时内活跃
                         
+                        # 提取模型信息
+                        model = "unknown"
+                        for line in reversed(lines):
+                            try:
+                                record = json.loads(line)
+                                if record.get("type") == "model_change":
+                                    model = record.get("modelId", "unknown")
+                                    break
+                            except:
+                                continue
+                        
                         task_info = {
                             "id": os.path.basename(session_file).replace('.jsonl', '')[:8],
                             "file": os.path.basename(session_file),
-                            "model": last_record.get("model", "unknown"),
+                            "model": model,
                             "status": "running" if is_active else "completed",
                             "last_active": mtime.isoformat(),
                             "duration_minutes": int((now - mtime).total_seconds() / 60)
@@ -226,10 +237,11 @@ class OpenClawCollector:
     def get_token_usage(self, days: int = 7) -> dict:
         """获取 Token 使用统计"""
         usage = {
-            "today": {"input": 0, "output": 0, "total": 0},
-            "week": {"input": 0, "output": 0, "total": 0},
-            "month": {"input": 0, "output": 0, "total": 0},
-            "daily": []
+            "today": {"input": 0, "output": 0, "total": 0, "cost": 0},
+            "week": {"input": 0, "output": 0, "total": 0, "cost": 0},
+            "month": {"input": 0, "output": 0, "total": 0, "cost": 0},
+            "daily": [],
+            "total_sessions": 0
         }
         
         try:
@@ -239,6 +251,7 @@ class OpenClawCollector:
             
             today = datetime.now().date()
             daily_data = {}
+            total_sessions = 0
             
             for session_file in glob.glob(f"{sessions_dir}/*.jsonl"):
                 try:
@@ -252,21 +265,38 @@ class OpenClawCollector:
                     
                     date_str = file_date.isoformat()
                     if date_str not in daily_data:
-                        daily_data[date_str] = {"input": 0, "output": 0, "total": 0}
+                        daily_data[date_str] = {"input": 0, "output": 0, "total": 0, "cost": 0}
                     
                     # 解析文件中的 token 使用
+                    session_input = 0
+                    session_output = 0
+                    
                     with open(session_file, 'r', encoding='utf-8') as f:
                         for line in f:
                             try:
                                 record = json.loads(line)
-                                tokens = record.get("usage", {}).get("total_tokens", 0)
-                                if tokens > 0:
-                                    daily_data[date_str]["total"] += tokens
-                                    # 简单估算：60% input, 40% output
-                                    daily_data[date_str]["input"] += int(tokens * 0.6)
-                                    daily_data[date_str]["output"] += int(tokens * 0.4)
+                                if record.get("type") == "message":
+                                    message = record.get("message", {})
+                                    if message.get("role") == "assistant":
+                                        usage_data = message.get("usage", {})
+                                        if usage_data:
+                                            # 支持多种格式
+                                            input_tokens = usage_data.get("input", 0) or usage_data.get("input_tokens", 0)
+                                            output_tokens = usage_data.get("output", 0) or usage_data.get("output_tokens", 0)
+                                            total_tokens = usage_data.get("totalTokens", 0) or (input_tokens + output_tokens)
+                                            
+                                            session_input += input_tokens
+                                            session_output += output_tokens
+                                            
+                                            # 累加到每日统计
+                                            daily_data[date_str]["input"] += input_tokens
+                                            daily_data[date_str]["output"] += output_tokens
+                                            daily_data[date_str]["total"] += total_tokens
                             except:
                                 continue
+                    
+                    if session_input > 0 or session_output > 0:
+                        total_sessions += 1
                                 
                 except Exception as e:
                     continue
@@ -276,13 +306,14 @@ class OpenClawCollector:
             for date_str, data in daily_data.items():
                 if date_str == today_str:
                     usage["today"] = data
+                usage["week"]["input"] += data["input"]
+                usage["week"]["output"] += data["output"]
                 usage["week"]["total"] += data["total"]
+                usage["month"]["input"] += data["input"]
+                usage["month"]["output"] += data["output"]
                 usage["month"]["total"] += data["total"]
             
-            usage["week"]["input"] = int(usage["week"]["total"] * 0.6)
-            usage["week"]["output"] = int(usage["week"]["total"] * 0.4)
-            usage["month"]["input"] = int(usage["month"]["total"] * 0.6)
-            usage["month"]["output"] = int(usage["month"]["total"] * 0.4)
+            usage["total_sessions"] = total_sessions
             
             # 转换为列表格式用于图表
             usage["daily"] = [
