@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  openclaw-monitor:
+    build: .
+    container_name: openclaw-monitor
+    ports:
+      - "8080:8080"
+    environment:
+      - MONITOR_USERNAME=${MONITOR_USERNAME:-admin}
+      - MONITOR_PASSWORD=${MONITOR_PASSWORD:-changeme}
+      - PORT=8080
+      - HOST=0.0.0.0
+    volumes:
+      # Mount OpenClaw config directory (read-only)
+      - ~/.openclaw:/root/.openclaw:ro
+      # Persist pricing configuration
+      - ./data:/root/.openclaw-monitor
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Optional: Add nginx reverse proxy for HTTPS
+#  nginx:
+#    image: nginx:alpine
+#    ports:
+#      - "443:443"
+#    volumes:
+#      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+#      - ./ssl:/etc/nginx/ssl:ro
+#    depends_on:
+#      - openclaw-monitor
+#    restart: unless-stopped

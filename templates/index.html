@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenClaw Monitor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="dark">
+    <!-- 顶部导航 -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="logo">🦞</span>
+            <span class="title">OpenClaw Monitor</span>
+            <span class="version" id="monitor-version">v1.0.0</span>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-icon" id="theme-toggle" title="切换主题">🌙</button>
+            <button class="btn-icon" id="settings-btn" title="设置">⚙️</button>
+            <button class="btn-icon" id="refresh-btn" title="刷新">🔄</button>
+        </div>
+    </nav>
+
+    <!-- 标签页导航 -->
+    <div class="tab-nav">
+        <button class="tab-btn active" data-tab="overview">概览</button>
+        <button class="tab-btn" data-tab="tasks">任务</button>
+        <button class="tab-btn" data-tab="logs">日志</button>
+        <button class="tab-btn" data-tab="pricing">💰 定价</button>
+    </div>
+
+    <!-- 主内容区 -->
+    <main class="main-content">
+        
+        <!-- 概览标签页 -->
+        <div id="tab-overview" class="tab-content active">
+            <!-- 状态卡片 -->
+            <div class="card-grid">
+                <div class="status-card">
+                    <div class="card-icon">🌐</div>
+                    <div class="card-content">
+                        <div class="card-label">Gateway</div>
+                        <div class="card-value" id="gateway-status">检测中...</div>
+                        <div class="card-sub" id="gateway-version"></div>
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-icon">📋</div>
+                    <div class="card-content">
+                        <div class="card-label">运行任务</div>
+                        <div class="card-value" id="running-tasks">-</div>
+                        <div class="card-sub">24h完成: <span id="completed-tasks">-</span></div>
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-icon">🪙</div>
+                    <div class="card-content">
+                        <div class="card-label">今日 Token</div>
+                        <div class="card-value" id="today-tokens">-</div>
+                        <div class="card-sub">本周: <span id="week-tokens">-</span></div>
+                    </div>
+                </div>
+                
+                <div class="status-card">
+                    <div class="card-icon">💵</div>
+                    <div class="card-content">
+                        <div class="card-label">今日成本</div>
+                        <div class="card-value" id="today-cost">-</div>
+                        <div class="card-sub">本周: <span id="week-cost">-</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 版本与系统信息 -->
+            <div class="section-grid">
+                <div class="info-card">
+                    <div class="card-header">
+                        <h3>📦 版本信息</h3>
+                        <span class="badge" id="update-badge">检查中...</span>
+                    </div>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">OpenClaw</span>
+                            <span class="info-value" id="oc-version">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">监控面板</span>
+                            <span class="info-value">v1.0.0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">最新版本</span>
+                            <span class="info-value" id="latest-version">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="card-header">
+                        <h3>⏱️ 运行统计</h3>
+                    </div>
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">运行时间</span>
+                            <span class="info-value" id="uptime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">总会话</span>
+                            <span class="info-value" id="total-sessions">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">最后活跃</span>
+                            <span class="info-value" id="last-active">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 系统信息 -->
+            <div class="info-card">
+                <div class="card-header">
+                    <h3>🖥️ 系统信息</h3>
+                    <span class="badge" id="system-status">正常</span>
+                </div>
+                <div class="system-grid">
+                    <div class="system-item">
+                        <div class="system-icon">💻</div>
+                        <div class="system-info">
+                            <div class="system-label">主机</div>
+                            <div class="system-value" id="hostname">-</div>
+                        </div>
+                    </div>
+                    <div class="system-item">
+                        <div class="system-icon">🐧</div>
+                        <div class="system-info">
+                            <div class="system-label">系统</div>
+                            <div class="system-value" id="os-info">-</div>
+                        </div>
+                    </div>
+                    <div class="system-item">
+                        <div class="system-icon">🌐</div>
+                        <div class="system-info">
+                            <div class="system-label">IP</div>
+                            <div class="system-value" id="ip-address">-</div>
+                        </div>
+                    </div>
+                    <div class="system-item">
+                        <div class="system-icon">💾</div>
+                        <div class="system-info">
+                            <div class="system-label">内存</div>
+                            <div class="system-value" id="memory-info">-</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="memory-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="system-item">
+                        <div class="system-icon">💽</div>
+                        <div class="system-info">
+                            <div class="system-label">磁盘</div>
+                            <div class="system-value" id="disk-info">-</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="disk-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="system-item">
+                        <div class="system-icon">⚙️</div>
+                        <div class="system-info">
+                            <div class="system-label">CPU</div>
+                            <div class="system-value" id="cpu-info">-</div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="cpu-bar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="chart-card">
+                <div class="card-header">
+                    <h3>📊 7天使用趋势</h3>
+                    <div class="chart-legend">
+                        <span class="legend-item"><span class="dot input"></span>输入</span>
+                        <span class="legend-item"><span class="dot output"></span>输出</span>
+                        <span class="legend-item"><span class="dot cost"></span>成本</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="usage-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 任务标签页 -->
+        <div id="tab-tasks" class="tab-content">
+            <div class="info-card">
+                <div class="card-header">
+                    <h3>📋 任务状态</h3>
+                    <div class="task-stats">
+                        <span class="stat-badge running">运行中: <span id="task-running-count">0</span></span>
+                        <span class="stat-badge completed">24h完成: <span id="task-completed-count">0</span></span>
+                    </div>
+                </div>
+                <div class="task-list" id="task-list">
+                    <div class="empty-state">暂无运行中的任务</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 日志标签页 -->
+        <div id="tab-logs" class="tab-content">
+            <div class="info-card">
+                <div class="card-header">
+                    <h3>⚠️ 最近错误 (7天内)</h3>
+                    <select class="filter-select" id="log-days">
+                        <option value="1">1天</option>
+                        <option value="3">3天</option>
+                        <option value="7" selected>7天</option>
+                    </select>
+                </div>
+                <div class="log-list" id="error-list">
+                    <div class="empty-state">暂无错误日志</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 定价标签页 -->
+        <div id="tab-pricing" class="tab-content">
+            <!-- 货币设置 -->
+            <div class="info-card">
+                <div class="card-header">
+                    <h3>💱 货币设置</h3>
+                </div>
+                <div class="currency-settings">
+                    <div class="form-group">
+                        <label>显示货币</label>
+                        <select id="display-currency" class="form-select">
+                            <option value="CNY">人民币 (CNY)</option>
+                            <option value="USD">美元 (USD)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>汇率 (USD → CNY)</label>
+                        <div class="input-group">
+                            <input type="number" id="exchange-rate" class="form-input" step="0.01" value="7.25">
+                            <button class="btn" id="update-rate-btn">更新</button>
+                            <button class="btn secondary" id="auto-rate-btn">自动获取</button>
+                        </div>
+                        <small id="rate-last-updated">上次更新: -</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 定价管理 -->
+            <div class="info-card">
+                <div class="card-header">
+                    <h3>💰 Token 定价管理</h3>
+                    <div class="header-actions">
+                        <button class="btn" id="add-model-btn">+ 添加模型</button>
+                        <button class="btn secondary" id="reset-pricing-btn">重置默认</button>
+                    </div>
+                </div>
+                <div class="pricing-table-wrapper">
+                    <table class="pricing-table" id="pricing-table">
+                        <thead>
+                            <tr>
+                                <th>模型名称</th>
+                                <th>提供商</th>
+                                <th>输入价格 / 1K tokens</th>
+                                <th>输出价格 / 1K tokens</th>
+                                <th>货币</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pricing-tbody">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 定价历史 -->
+            <div class="info-card">
+                <div class="card-header">
+                    <h3>📈 定价修改历史</h3>
+                </div>
+                <div class="history-list" id="pricing-history">
+                    <div class="empty-state">暂无修改记录</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 编辑定价模态框 -->
+    <div class="modal" id="edit-pricing-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑定价</h3>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="pricing-form">
+                    <input type="hidden" id="edit-model-name">
+                    <div class="form-group">
+                        <label>模型名称</label>
+                        <input type="text" id="edit-model-display" class="form-input" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>提供商</label>
+                        <input type="text" id="edit-provider" class="form-input" placeholder="如: Moonshot">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>输入价格 / 1K tokens</label>
+                            <input type="number" id="edit-input-price" class="form-input" step="0.0001" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>输出价格 / 1K tokens</label>
+                            <input type="number" id="edit-output-price" class="form-input" step="0.0001" min="0">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>货币</label>
+                        <select id="edit-currency" class="form-select">
+                            <option value="CNY">CNY (人民币)</option>
+                            <option value="USD">USD (美元)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>修改原因 (可选)</label>
+                        <input type="text" id="edit-reason" class="form-input" placeholder="如: 供应商调价">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn secondary" id="cancel-edit">取消</button>
+                <button class="btn primary" id="save-pricing">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</body>
+</html>
